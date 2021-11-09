@@ -46,8 +46,8 @@ addProblem(name = "myprob", fun = myprob, seed = 1043)
 
 # Algorithms -----------------------------------------------------------
 run_rf <- function(data, job, instance, ...) {
-    fit <- randomForest(x=instance$train$X,
-                        y=instance$train$Y_true,
+    fit <- randomForest(x = instance$train$X,
+                        y = instance$train$Y_true,
                         ...)
     pred <- predict(fit, instance$test$X)
     mse <- mean((pred-instance$test$Y_true)^2)
@@ -70,10 +70,10 @@ run_xgboost <- function(data, job, instance, ...) {
 addAlgorithm(name = "xgboost", fun = run_xgboost)
 
 run_rpf <- function(data, job, instance, ...) {
-    fit <- rpf(X=instance$train$X,
-               Y=instance$train$Y_true,
-               variables=NULL,
-               min_leaf_size=1, 
+    fit <- rpf(X = instance$train$X,
+               Y = instance$train$Y_true,
+               variables = NULL,
+               min_leaf_size = 1, 
                ...)
     pred <- predict_rpf(forest_res = fit, X = instance$test$X)
     mse <- mean((pred-instance$test$Y_true)^2)
@@ -140,5 +140,7 @@ res[, Method := factor(paste(algorithm, max.depth, max_interaction),
 ggplot(res, aes(x = Method, y = mse)) +
   geom_boxplot() + 
   coord_flip() + 
-  ylab("MSE")
-ggsave("model4_p30.pdf", width = 12, height = 5)
+  ylab("MSE") + 
+  theme_bw()
+ggsave("model4_p30.pdf", width = 10, height = 8)
+
