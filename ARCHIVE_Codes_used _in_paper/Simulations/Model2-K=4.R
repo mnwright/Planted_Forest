@@ -7,8 +7,8 @@ source("planted_forest_CV.R")
 
 library(parallel)
 
-Monte_Carlo=100
-Kerne=20
+Monte_Carlo=10
+Kerne=4
 
 simulate_function <- function(Monte_Carlo){
   
@@ -50,24 +50,24 @@ simulate_function <- function(Monte_Carlo){
   
   MSE_xgboost_interaction=mean((fits-Data$Y_true)^2)
   
-  #EBM
-  
-  # Additive Estimator
-  
-  model_EBM_additive <- ebm_regression(data.frame(Data$X),
-                                       Data$Y_start,
-                                       num_outer_bags = 16,
-                                       validation_size = 0.15,
-                                       max_epochs = 600,
-                                       num_early_stopping_run_length = 50,
-                                       learning_rate = 0.08,
-                                       max_tree_splits = 3,
-                                       min_instances_for_split = 2,
-                                       random_state = sample(1:999999,1))
-  
-  fits=ebm_prediction(model_EBM_additive, data.frame(Data$X))
-  
-  MSE_EBM_additive=mean((fits-Data$Y_true)^2)
+  # #EBM
+  # 
+  # # Additive Estimator
+  # 
+  # model_EBM_additive <- ebm_regression(data.frame(Data$X),
+  #                                      Data$Y_start,
+  #                                      num_outer_bags = 16,
+  #                                      validation_size = 0.15,
+  #                                      max_epochs = 600,
+  #                                      num_early_stopping_run_length = 50,
+  #                                      learning_rate = 0.08,
+  #                                      max_tree_splits = 3,
+  #                                      min_instances_for_split = 2,
+  #                                      random_state = sample(1:999999,1))
+  # 
+  # fits=ebm_prediction(model_EBM_additive, data.frame(Data$X))
+  # 
+  # MSE_EBM_additive=mean((fits-Data$Y_true)^2)
   
   model_randomForests <- randomForest(x=Data$X,
                                       y=Data$Y_start,
@@ -76,156 +76,156 @@ simulate_function <- function(Monte_Carlo){
                                       nodesize = 3,
                                       maxnodes = 500)
   
-  fits=predict(model_randomForests)
+  fits=predict(model_randomForests, newdata = Data$X)
   
   MSE_randomForests=mean((fits-Data$Y_true)^2)
   
-  #PF
-  
-  model_PF_alternative=planted_forest_simu_plots(Y=Data$Y_start,
-                                        X=Data$X,
-                                        max_interaction=1,
-                                        ntrees=50,
-                                        splits=30,
-                                        split_try=5,
-                                        t_try=0.75,
-                                        variables=NULL,
-                                        leaf_size=rep(1,p),
-                                        alternative=T)
-  
-  fits=model_PF_alternative$Y_fitted
-  
-  MSE_PF_alternative=mean((fits-Data$Y_true)^2)
-  
-  #Additive estimator
-  
-  model_PF_additive=planted_forest_simu_plots(Y=Data$Y_start,
-                                     X=Data$X,
-                                     max_interaction=1,
-                                     ntrees=50,
-                                     splits=30,
-                                     split_try=5,
-                                     t_try=0.75,
-                                     variables=NULL,
-                                     leaf_size=rep(1,p))
-  
-  fits=model_PF_additive$Y_fitted
-  
-  MSE_PF_additive=mean((fits-Data$Y_true)^2)
-  
-  #Estimator including interaction terms
-  
-  model_PF_interaction=planted_forest_simu_plots(Y=Data$Y_start,
-                                        X=Data$X,
-                                        max_interaction=2,
-                                        ntrees=50,
-                                        splits=60,
-                                        split_try=5,
-                                        t_try=0.25,
-                                        variables=NULL,
-                                        leaf_size=rep(1,p))
-  
-  fits=model_PF_interaction$Y_fitted
-  
-  MSE_PF_interaction=mean((fits-Data$Y_true)^2)
-  
-  #Estimator including arbitrary interaction terms
-  
-  model_PF_fullinteraction=planted_forest_simu_plots(Y=Data$Y_start,
-                                            X=Data$X,
-                                            max_interaction=4,
-                                            ntrees=50,
-                                            splits=30,
-                                            split_try=5,
-                                            t_try=0.75,
-                                            variables=NULL,
-                                            leaf_size=rep(1,p))
-  
-  fits=model_PF_fullinteraction$Y_fitted
-  
-  MSE_PF_fullinteraction=mean((fits-Data$Y_true)^2)
-  
-  #BF
-  
-  b.LL.grid <- b.LC.grid <- b.BF.grid <- numeric(p)
-  
-  b.LL.grid[1:(p+1)] <- rep(c(0.1),p+1)
-  
-  model_backfit.LL<-SBF.reg.LL(frmla,
-                               train.data,
-                               b.LL.grid,
-                               weight='sw',
-                               it=15,
-                               x.grid=NULL,
-                               integral.approx='midd',
-                               kcorr=TRUE,
-                               LC=FALSE,
-                               wrong=FALSE,
-                               classic.backfit=FALSE)
-  
-  b.LC.grid[1:(p+1)] <- rep(c(0.1),p+1)  
-  
-  model_backfit.LC<-SBF.reg.LL(frmla,
-                               train.data,
-                               b.LC.grid,
-                               weight='sw',
-                               it=15,
-                               x.grid=NULL,
-                               integral.approx='midd',
-                               kcorr=TRUE,
-                               LC=TRUE,
-                               wrong=FALSE,
-                               classic.backfit=FALSE)
-  
-  b.BF.grid[1:(p+1)] <- rep(c(0.1),p+1)
-  
-  model_backfit.BF<-SBF.reg.LL(frmla,
-                               train.data,
-                               b.BF.grid,
-                               weight='sw',
-                               it=15,
-                               x.grid=NULL,
-                               integral.approx='midd',
-                               kcorr=TRUE,
-                               LC=TRUE,
-                               wrong=FALSE,
-                               classic.backfit=TRUE)
-  
-  fits_backfit.LL=0
-  fits_backfit.LC=0
-  fits_backfit.BF=0
-  
-  for(i in 1:p){
-    
-    names(model_backfit.LL$f_backfit[[i]])=names(model_backfit.LL$x.grid[[i]])
-    names(model_backfit.LC$f_backfit[[i]])=names(model_backfit.LC$x.grid[[i]])
-    names(model_backfit.BF$f_backfit[[i]])=names(model_backfit.BF$x.grid[[i]])
-    
-    fits_backfit.LL=fits_backfit.LL+model_backfit.LL$f_backfit[[i]][as.character(sort(as.numeric(names(model_backfit.LL$x.grid[[i]]))))]
-    fits_backfit.LC=fits_backfit.LC+model_backfit.LC$f_backfit[[i]][as.character(sort(as.numeric(names(model_backfit.LC$x.grid[[i]]))))]
-    fits_backfit.BF=fits_backfit.BF+model_backfit.BF$f_backfit[[i]][as.character(sort(as.numeric(names(model_backfit.BF$x.grid[[i]]))))]
-  }
-  
-  MSE_backfit.LL=mean((fits_backfit.LL-Data$Y_true)^2)
-  MSE_backfit.LC=mean((fits_backfit.LC-Data$Y_true)^2)
-  MSE_backfit.BF=mean((fits_backfit.BF-Data$Y_true)^2)
-  
-  #Pspline
-  
-  pred2 <- paste0("pspline(","V", 1:p,",df=",c(4),")")
-  frmla2 <- reformulate(pred2,"Y")
-  model_pspline=lm(frmla2, train.data)
-  fits=predict(model_pspline)
-  
-  MSE_pspline=mean((fits-Data$Y_true)^2)
-  
-  pred3 <- paste0("s(","V", 1:p,")")
-  frmla3 <- reformulate(pred3, "Y")
-  model_gam <- gam(frmla3, data=train.data,select=TRUE,method="REML")
-  fits <- predict(model_gam, train.data)
-  
-  if(!is.null(fits)){MSE_gam=mean((fits-Data$Y_true)^2)} else {MSE_gam=1000}
-  
+  # #PF
+  # 
+  # model_PF_alternative=planted_forest_simu_plots(Y=Data$Y_start,
+  #                                       X=Data$X,
+  #                                       max_interaction=1,
+  #                                       ntrees=50,
+  #                                       splits=30,
+  #                                       split_try=5,
+  #                                       t_try=0.75,
+  #                                       variables=NULL,
+  #                                       leaf_size=rep(1,p),
+  #                                       alternative=T)
+  # 
+  # fits=model_PF_alternative$Y_fitted
+  # 
+  # MSE_PF_alternative=mean((fits-Data$Y_true)^2)
+  # 
+  # #Additive estimator
+  # 
+  # model_PF_additive=planted_forest_simu_plots(Y=Data$Y_start,
+  #                                    X=Data$X,
+  #                                    max_interaction=1,
+  #                                    ntrees=50,
+  #                                    splits=30,
+  #                                    split_try=5,
+  #                                    t_try=0.75,
+  #                                    variables=NULL,
+  #                                    leaf_size=rep(1,p))
+  # 
+  # fits=model_PF_additive$Y_fitted
+  # 
+  # MSE_PF_additive=mean((fits-Data$Y_true)^2)
+  # 
+  # #Estimator including interaction terms
+  # 
+  # model_PF_interaction=planted_forest_simu_plots(Y=Data$Y_start,
+  #                                       X=Data$X,
+  #                                       max_interaction=2,
+  #                                       ntrees=50,
+  #                                       splits=60,
+  #                                       split_try=5,
+  #                                       t_try=0.25,
+  #                                       variables=NULL,
+  #                                       leaf_size=rep(1,p))
+  # 
+  # fits=model_PF_interaction$Y_fitted
+  # 
+  # MSE_PF_interaction=mean((fits-Data$Y_true)^2)
+  # 
+  # #Estimator including arbitrary interaction terms
+  # 
+  # model_PF_fullinteraction=planted_forest_simu_plots(Y=Data$Y_start,
+  #                                           X=Data$X,
+  #                                           max_interaction=4,
+  #                                           ntrees=50,
+  #                                           splits=30,
+  #                                           split_try=5,
+  #                                           t_try=0.75,
+  #                                           variables=NULL,
+  #                                           leaf_size=rep(1,p))
+  # 
+  # fits=model_PF_fullinteraction$Y_fitted
+  # 
+  # MSE_PF_fullinteraction=mean((fits-Data$Y_true)^2)
+  # 
+  # #BF
+  # 
+  # b.LL.grid <- b.LC.grid <- b.BF.grid <- numeric(p)
+  # 
+  # b.LL.grid[1:(p+1)] <- rep(c(0.1),p+1)
+  # 
+  # model_backfit.LL<-SBF.reg.LL(frmla,
+  #                              train.data,
+  #                              b.LL.grid,
+  #                              weight='sw',
+  #                              it=15,
+  #                              x.grid=NULL,
+  #                              integral.approx='midd',
+  #                              kcorr=TRUE,
+  #                              LC=FALSE,
+  #                              wrong=FALSE,
+  #                              classic.backfit=FALSE)
+  # 
+  # b.LC.grid[1:(p+1)] <- rep(c(0.1),p+1)  
+  # 
+  # model_backfit.LC<-SBF.reg.LL(frmla,
+  #                              train.data,
+  #                              b.LC.grid,
+  #                              weight='sw',
+  #                              it=15,
+  #                              x.grid=NULL,
+  #                              integral.approx='midd',
+  #                              kcorr=TRUE,
+  #                              LC=TRUE,
+  #                              wrong=FALSE,
+  #                              classic.backfit=FALSE)
+  # 
+  # b.BF.grid[1:(p+1)] <- rep(c(0.1),p+1)
+  # 
+  # model_backfit.BF<-SBF.reg.LL(frmla,
+  #                              train.data,
+  #                              b.BF.grid,
+  #                              weight='sw',
+  #                              it=15,
+  #                              x.grid=NULL,
+  #                              integral.approx='midd',
+  #                              kcorr=TRUE,
+  #                              LC=TRUE,
+  #                              wrong=FALSE,
+  #                              classic.backfit=TRUE)
+  # 
+  # fits_backfit.LL=0
+  # fits_backfit.LC=0
+  # fits_backfit.BF=0
+  # 
+  # for(i in 1:p){
+  #   
+  #   names(model_backfit.LL$f_backfit[[i]])=names(model_backfit.LL$x.grid[[i]])
+  #   names(model_backfit.LC$f_backfit[[i]])=names(model_backfit.LC$x.grid[[i]])
+  #   names(model_backfit.BF$f_backfit[[i]])=names(model_backfit.BF$x.grid[[i]])
+  #   
+  #   fits_backfit.LL=fits_backfit.LL+model_backfit.LL$f_backfit[[i]][as.character(sort(as.numeric(names(model_backfit.LL$x.grid[[i]]))))]
+  #   fits_backfit.LC=fits_backfit.LC+model_backfit.LC$f_backfit[[i]][as.character(sort(as.numeric(names(model_backfit.LC$x.grid[[i]]))))]
+  #   fits_backfit.BF=fits_backfit.BF+model_backfit.BF$f_backfit[[i]][as.character(sort(as.numeric(names(model_backfit.BF$x.grid[[i]]))))]
+  # }
+  # 
+  # MSE_backfit.LL=mean((fits_backfit.LL-Data$Y_true)^2)
+  # MSE_backfit.LC=mean((fits_backfit.LC-Data$Y_true)^2)
+  # MSE_backfit.BF=mean((fits_backfit.BF-Data$Y_true)^2)
+  # 
+  # #Pspline
+  # 
+  # pred2 <- paste0("pspline(","V", 1:p,",df=",c(4),")")
+  # frmla2 <- reformulate(pred2,"Y")
+  # model_pspline=lm(frmla2, train.data)
+  # fits=predict(model_pspline)
+  # 
+  # MSE_pspline=mean((fits-Data$Y_true)^2)
+  # 
+  # pred3 <- paste0("s(","V", 1:p,")")
+  # frmla3 <- reformulate(pred3, "Y")
+  # model_gam <- gam(frmla3, data=train.data,select=TRUE,method="REML")
+  # fits <- predict(model_gam, train.data)
+  # 
+  # if(!is.null(fits)){MSE_gam=mean((fits-Data$Y_true)^2)} else {MSE_gam=1000}
+  # 
   #Gradient boosting
   
   model_xgboost_additive <- xgboost(data = as.matrix(train.data[,2:(p+1)]),
@@ -246,16 +246,16 @@ simulate_function <- function(Monte_Carlo){
               Y=Data$Y_start,
               MSE_xgboost_additive=MSE_xgboost_additive,
               MSE_xgboost_interaction=MSE_xgboost_interaction,
-              MSE_EBM_additive=MSE_EBM_additive,
-              MSE_PF_alternative=MSE_PF_alternative,
-              MSE_PF_additive=MSE_PF_additive,
-              MSE_PF_interaction=MSE_PF_interaction,
-              MSE_PF_fullinteraction=MSE_PF_fullinteraction,
-              MSE_backfit.LL=MSE_backfit.LL,
-              MSE_backfit.LC=MSE_backfit.LC,
-              MSE_backfit.BF=MSE_backfit.BF,
-              MSE_pspline=MSE_pspline,
-              MSE_gam=MSE_gam,
+              # MSE_EBM_additive=MSE_EBM_additive,
+              # MSE_PF_alternative=MSE_PF_alternative,
+              # MSE_PF_additive=MSE_PF_additive,
+              # MSE_PF_interaction=MSE_PF_interaction,
+              # MSE_PF_fullinteraction=MSE_PF_fullinteraction,
+              # MSE_backfit.LL=MSE_backfit.LL,
+              # MSE_backfit.LC=MSE_backfit.LC,
+              # MSE_backfit.BF=MSE_backfit.BF,
+              # MSE_pspline=MSE_pspline,
+              # MSE_gam=MSE_gam,
               MSE_randomForests=MSE_randomForests))
 }
 
@@ -269,3 +269,12 @@ Results <- parSapply(cl,1:Monte_Carlo, simulate_function)
 stopCluster(cl)
 
 # save(Results,file="Model2-K=4_FinalResults.Rdata")
+
+# xgboost additive
+mean(unlist(Results[3, ]))
+
+# xgboost interaction
+mean(unlist(Results[4, ]))
+
+# RF
+mean(unlist(Results[5, ]))

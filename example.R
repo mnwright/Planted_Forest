@@ -6,6 +6,8 @@ source("predict_purified.R")
 source("variable_importance.R")
 source("predict_rpf.R")
 
+library(parallel)
+
 
 categorical_variables <- c(7,8)
 
@@ -25,8 +27,6 @@ pur_res <- purify(res,as.matrix(mtcars[1:20,-1]),cores=4)
 unique(unlist(sapply(1:length(pur_res), function(s)
    pur_res[[s]]$my.functions[sapply(1:length(pur_res[[s]]$my.functions), function(z) sum(abs(pur_res[[s]]$values[[z]]))>0)]
   ),recursive = FALSE)) 
-
-
 
 
 
@@ -67,4 +67,16 @@ bst <- xgb.train(param, dtrain, nrounds = 1000)
 sum((as.numeric(mtcars[21:30,1])-predict(bst, as.matrix(mtcars[21:30,-1])))^2)/30
 
 
+plot_pur(pur_res,X, categorical_variables, 2)
+
+# plot RPF
+source("plot_rpf.R")
+X <- as.matrix(mtcars[1:20,-1])
+plot_rpf(res, x = X, i = 2)
+
+
+# predict
+predict_rpf(X, res, i = 0)
+source("predict_purified.R")
+pred_pur(X, pur_res)
 

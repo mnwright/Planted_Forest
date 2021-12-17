@@ -160,6 +160,8 @@ for(i in 1:nrow(X)){ Y_true[i]=F_ursprung(X[i,]) }
 
 Y_start=Y_true+epsilon
 
+colnames(X) <- paste0("X", 1:ncol(X))
+
 return(list(Y_start=Y_start,Y_true=Y_true,X=X))
 
 }
